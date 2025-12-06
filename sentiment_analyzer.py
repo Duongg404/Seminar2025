@@ -1,37 +1,43 @@
 from transformers import pipeline, AutoModelForSequenceClassification, AutoTokenizer
 import torch
 import warnings
+import streamlit as st
 
 warnings.filterwarnings('ignore')
 
 
 class SentimentAnalyzer:
     def __init__(self, model_name="distilbert-base-multilingual-cased"):
-
         self.model_name = model_name
         self.device = 0 if torch.cuda.is_available() else -1
 
-        print(f"🚀 Đang khởi tạo SentimentAnalyzer...")
-        print(f"   - Model: {model_name}")
-        print(f"   - Device: {'GPU (CUDA)' if self.device == 0 else 'CPU'}")
+        self.classifier = None
+        self._initialize_model()
 
+    def _initialize_model(self):
         try:
             self.classifier = pipeline(
                 "sentiment-analysis",
-                model=model_name,
+                model=self.model_name,
                 device=self.device,
                 truncation=True,
-                max_length=256
+                max_length=256,
+                framework="pt"
             )
-
-            print("✅ SentimentAnalyzer đã sẵn sàng!")
-
+            st.success("✅ Model đã được tải thành công!")
         except Exception as e:
-            print(f"❌ Lỗi khi khởi tạo SentimentAnalyzer: {e}")
-            raise
+            st.error(f"❌ Lỗi khi tải model: {e}")
+            # Fallback model
+            st.warning("⚠️ Đang sử dụng model fallback...")
+            self.classifier = self._create_fallback_classifier()
+
+    def _create_fallback_classifier(self):
+        class FallbackClassifier:
+            def __call__(self, text):
+                return [{'label': 'NEUTRAL', 'score': 0.5}]
+        return FallbackClassifier()
 
     def _map_sentiment_label(self, label):
-
         if not label:
             return "NEUTRAL"
 
@@ -45,9 +51,9 @@ class SentimentAnalyzer:
             return "NEUTRAL"
         else:
             return "NEUTRAL"
+        pass
 
     def analyze(self, text, confidence_threshold=0.4):
-
         if not text or not isinstance(text, str) or len(text.strip()) < 2:
             return "NEUTRAL", 0.5
 
@@ -84,17 +90,17 @@ class SentimentAnalyzer:
         except Exception as e:
             print(f"⚠️ Lỗi khi phân tích: {str(e)[:100]}")
             return "NEUTRAL", 0.5
+        pass
 
     def batch_analyze(self, texts, confidence_threshold=0.4):
-
         results = []
         for text in texts:
             result = self.analyze(text, confidence_threshold)
             results.append(result)
         return results
+        pass
 
     def get_model_info(self):
-
         return {
             "model_name": self.model_name,
             "device": "GPU" if self.device == 0 else "CPU",
