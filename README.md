@@ -17,4 +17,5 @@
 ```bash
 git clone <https://github.com/Duongg404/Seminar2025.git>
 
-cd sentiment-assistant
+cd Seminar2025
+
